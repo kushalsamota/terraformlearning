@@ -168,3 +168,120 @@ variable "instancelist" {
 
 
 
+resource "aws_instance" "ec2instance" {
+  ami = "ami-010f8b02680f80998"
+  instance_type = "t2.micro"
+  tags = {
+    Name = "webinstance"
+  }
+ vpc_security_group_ids = ["${aws_security_group.sg_web_instance.id}"]
+}
+
+resource "aws_eip" "webfixedip" {
+  domain   = "vpc"
+}
+
+
+resource "aws_eip_association" "eip_assoc_for_web" {
+  instance_id   = aws_instance.ec2instance.id
+  allocation_id = aws_eip.webfixedip.id
+}
+
+resource "aws_security_group" "sg_web_instance" {
+  name        = "sg_web_instance"
+
+  ingress {
+    from_port        = 443
+    to_port          = 443
+    protocol         = "tcp"
+    cidr_blocks      = ["${aws_eip.webfixedip.public_ip}/32"]
+  }
+  tags = {
+    Name = "sg_web_instance"
+  }
+}
+
+output "public_ip_web_instance" {
+  value = aws_instance.ec2instance.public_ip
+}
+
+output "public_dns_web_instance" {
+  value = aws_instance.ec2instance.public_dns
+}
+=======================================
+resource.tf
+
+variable "instancetype" {
+  type = string
+  }                                 #variable declaration is must
+
+variable "sg_list" {
+  type = list
+}
+
+resource "aws_instance" "ec2instance" {
+  ami = "ami-010f8b02680f80998"
+  instance_type = var.instancetype
+  security_groups  = var.sg_list
+  }
+
+
+  output "public_ip_web_instance" {
+    value = aws_instance.ec2instance.public_ip
+  }
+
+  output "public_dns_web_instance" {
+    value = aws_instance.ec2instance.public_dns
+  }
+
+terraform.tfvars
+
+instancetype = "m4.large"
+sg_list = ["default","newsg"]
+============================================
+resource.tf
+variable "instance_type_list" {
+  type = list
+  default = ["t2.micro","t2.nano","t2.large"]
+}
+
+resource "aws_instance" "ec2instance" {
+  ami = "ami-010f8b02680f80998"
+  instance_type = var.instance_type_list[2]    #2 means t2.large, 0 means t2.micro, 1 means t2.nano
+  security_groups  = var.sg_list
+  }
+
+change the value to 0,1 and 2 and run terraform plan command
+===========================================
+map example
+provider.tf
+provider "aws" {
+ region = var.region
+ secret_key = write your secret key
+ access_key = write your access key
+}
+
+resource.tf
+
+variable "region" {}
+
+variable "instance_region" {
+  type = map
+  default = {
+    "us-west-1" = "t2.micro"
+    "ap-south-1" = "t2.nano"
+    "us-east-1" = "t2.large"
+  }
+}
+resource "aws_instance" "ec2instance" {
+  ami = "ami-010f8b02680f80998"
+  instance_type = lookup(var.instance_region,var.region)
+  security_groups  = var.sg_list
+  }
+
+run terraform plan and give any of the region defined in the instance_region variable and see whether it is taking the correct value or not.
+=================================
+
+
+Task --- Create a linux machine with the same AMI id given in above exercise and make sure that you can do ssh to it. 
+
