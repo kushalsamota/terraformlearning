@@ -7,7 +7,7 @@ create a provider.tf file and write the information
 
 ==============================================
 provider "aws" {
-  region     = "ap-south-1"
+  region     = "us-west-1"
   access_key = "type access key"
   secret_key = "type secret key"
 }
@@ -20,8 +20,8 @@ below are the files which you can create
 
 =======================
 resource "aws_instance" "ec2instance" {
-  ami           = "ami-0a23ccb2cdd9286bb"
-  instance_type = "t2.nano"
+  ami           = "ami-010f8b02680f80998"
+  instance_type = "t2.micro"
 
   tags = {
     Name = "DBINSTANCE"
@@ -29,7 +29,7 @@ resource "aws_instance" "ec2instance" {
 }
 
 resource "aws_s3_bucket" "mys3bucket" {
-  bucket = "kushalbucket1234"
+  bucket = "write custom name"
   acl    = "private"
 
   tags = {
@@ -39,7 +39,7 @@ resource "aws_s3_bucket" "mys3bucket" {
 }
 ==========================
 provider "aws" {
-  region     = "ap-south-1"
+  region     = "us-west-1"
   access_key = ""
   secret_key = ""
 }
@@ -55,7 +55,7 @@ terraform {
 
 =============================
 resource "aws_instance" "ec2instance" {
-  ami           = "ami-0a23ccb2cdd9286bb"
+  ami           = "ami-010f8b02680f80998"
   instance_type = "t2.nano"
 
   tags = {
@@ -77,8 +77,8 @@ resource "aws_eip" "myelasticip" {
 }
 
 resource "aws_instance" "ec2instance" {
-  ami           = "ami-0a23ccb2cdd9286bb"
-  instance_type = "t2.nano"
+  ami           = "ami-010f8b02680f80998"
+  instance_type = "t2.micro"
 
   tags = {
     Name = "DBINSTANCE"
@@ -96,8 +96,8 @@ resource "aws_eip" "myelasticip" {
 }
 
 resource "aws_instance" "ec2instance" {
-  ami           = "ami-0a23ccb2cdd9286bb"
-  instance_type = "t2.nano"
+  ami           = "ami-010f8b02680f80998"
+  instance_type = "t2.micro"
   vpc_security_group_ids = [aws_security_group.dbsg.id]
   tags = {
     Name = "DBINSTANCE"
