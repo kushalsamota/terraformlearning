@@ -79,3 +79,128 @@ locals {
 }
 =============================== 
 
+Functions
+===================================
+1)
+
+variable "region" {}
+
+variable "instance_names" {
+  type = list
+  default = ["production-instance","staging-instance"]
+}
+
+resource "aws_instance" "ec2instance" {
+  ami =  lookup(var.ami, var.region)                       #I want terraform to search for the ami for the region I pass
+  instance_type = "t2.micro"
+  tags = {
+    Name = element(var.instance_names, count.index)                   
+         }
+  count = 2
+  }
+
+locals {
+  common_tags = {
+    owner = "developer"
+    service = "backend"
+  }
+}
+
+variable "ami" {
+  type = map
+  default = {
+    "us-west-1" = "ami-010f8b02680f80998"
+    "ap-south-1" = "ami-0287a05f0ef0e9d9a"
+    "us-east-1" = "ami-0fc5d935ebf8bc3bc"
+  }
+}
+
+locals {
+  time = formatdate("DD MM YYYY hh:mm ZZZ", timestamp())
+}
+
+output "time" {
+  value = local.time
+}
+
+
+run terraform plan and give us-west-1, it will take ami id for us-west-1. try for other given region also.
+======================================
+2) with ssh key
+variable "region" {}
+
+variable "instance_names" {
+  type = list
+  default = ["production-instance","staging-instance"]
+}
+
+resource "aws_instance" "ec2instance" {
+  ami =  lookup(var.ami, var.region)                       #I want terraform to search for the ami for the region I pass
+  instance_type = "t2.micro"
+  tags = {
+    Name = element(var.instance_names, count.index)
+         }
+  count = 2
+  key_name = aws_key_pair.deployer.key_name
+  }
+
+resource "aws_key_pair" "deployer" {
+    key_name   = "prodkey.key"
+    public_key = file("./id_rsa.pub")                  #make sure that id_rsa and is_rsa.pub is present in current working directory of terrform. you can create it with ssh-keygen command
+}
+
+locals {
+  common_tags = {
+    owner = "developer"
+    service = "backend"
+  }
+}
+
+variable "ami" {
+  type = map
+  default = {
+    "us-west-1" = "ami-010f8b02680f80998"
+    "ap-south-1" = "ami-0287a05f0ef0e9d9a"
+    "us-east-1" = "ami-0fc5d935ebf8bc3bc"
+  }
+}
+
+locals {
+  time = formatdate("DD MM YYYY hh:mm ZZZ", timestamp())
+}
+
+output "time" {
+  value = local.time
+}
+=================================================
+
+ubuntu image finding with data sources
+resource "aws_instance" "ec2instance" {
+  ami = data.aws_ami.ami_amazon.id
+  instance_type = "t2.micro"
+}
+
+data "aws_ami" "ami_amazon" {
+  most_recent      = true
+  owners           = ["amazon"]
+
+  filter {
+      name   = "name"
+      values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-20231030"]
+    }
+
+filter {
+  name   = "virtualization-type"
+  values = ["hvm"]
+}
+
+filter {
+  name   = "root-device-type"
+  values = ["ebs"]
+}
+}
+================================================
+
+
+
+
