@@ -1,0 +1,80 @@
+Dynamic blocks
+
+1)
+resource "aws_instance" "ec2instance" {
+  ami = "ami-010f8b02680f80998"
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.dbsg.id]
+}
+
+variable "sg_ports" {
+  type = list
+  default = [80,443,22,3306,8080]
+}
+
+resource "aws_security_group" "dbsg" {
+  name        = "websg"
+  dynamic "ingress" {
+      for_each = var.sg_ports
+      content {
+        from_port        = ingress.value
+        to_port          = ingress.value
+        protocol         = "tcp"
+        cidr_blocks      = ["0.0.0.0/0"]
+      }
+    }
+  }
+=============================
+2)
+resource "aws_instance" "ec2instance" {
+  ami = "ami-010f8b02680f80998"
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.dbsg.id]
+}
+
+variable "sg_ports" {
+  type = list
+  default = [80,443,22,3306,8080]
+}
+
+resource "aws_security_group" "dbsg" {
+  name        = "websg"
+  dynamic "ingress" {
+      for_each = var.sg_ports
+      iterator = port
+      content {
+        from_port        = port.value
+        to_port          = port.value
+        protocol         = "tcp"
+        cidr_blocks      = ["0.0.0.0/0"]
+      }
+    }
+  }
+==============================
+
+Tainting resource
+1) - create the resource
+resource "aws_instance" "ec2instance" {
+  ami = "ami-010f8b02680f80998"
+  instance_type = "t2.micro"
+  count = 3
+}
+
+Once the resource is created, you can try both the options written below:-
+1)
+#one way 
+#terraform taint aws_instance.ec2instance[2]
+#terraform apply 
+#check whether the resource is getting deleted and recreated again or not.
+2)
+#anothor alternative
+#terraform apply -replace="aws_instance.ec2instance[1]"
+#check whether the resource is getting deleted and recreated again or not.
+===================================
+
+Terraform graph
+terraform graph > graph.dot
+
+install graphviz software and go to CMD and your current terraform folder
+run -> terraform graph | dot -Tsvg > graph.svg
+check whether the graph.svg file is created. open it in browser
