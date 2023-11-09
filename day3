@@ -78,3 +78,132 @@ terraform graph > graph.dot
 install graphviz software and go to CMD and your current terraform folder
 run -> terraform graph | dot -Tsvg > graph.svg
 check whether the graph.svg file is created. open it in browser
+
+=======================================
+remote-exec example
+resource "aws_instance" "ec2instance" {
+  ami                    = "ami-010f8b02680f80998"
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.dbsg.id]
+  key_name = aws_key_pair.deployer.key_name
+  connection {
+    type     = "ssh"
+    user     = "ec2-user"
+    private_key = file("./id_rsa")
+    host     = self.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum install nginx -y",
+      "sudo systemctl start nginx",
+    ]
+  }
+}
+
+resource "aws_key_pair" "deployer" {
+    key_name   = "prodkey.key"
+    public_key = file("./id_rsa.pub")                  #make sure that id_rsa and is_rsa.pub is present in current working directory of terrform. you can create it with ssh-keygen command
+}
+
+variable "sg_ports" {
+  type = list
+  default = [80,22]
+}
+
+resource "aws_security_group" "dbsg" {
+  name        = "websg1"
+  egress {
+    from_port = 0
+    to_port = 65535
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  dynamic "ingress" {
+      for_each = var.sg_ports
+      content {
+        from_port        = ingress.value
+        to_port          = ingress.value
+        protocol         = "tcp"
+        cidr_blocks      = ["0.0.0.0/0"]
+      }
+    }
+  }
+==================================
+local exec example
+resource "aws_instance" "ec2instance" {
+  ami                    = "ami-010f8b02680f80998"
+  instance_type          = "t2.micro"
+    provisioner "local-exec" {
+      command = "echo ${aws_instance.ec2instance.public_ip} > publicip.txt"
+    }
+}
+=================================
+local exec with continue if the resource creation failed
+resource "aws_instance" "ec2instance" {
+  ami                    = "ami-010f8b02680f80998"
+  instance_type          = "t2.micro"
+    provisioner "local-exec" {
+      command = "echo ${aws_instance.ec2instance.public_ip} > publicip.txt"
+      on_failure = continue        #by default it is fail
+    }
+}
+=================================
+destroy time provisioner --- for this run the terraform apply and than destroy command and see that both the time, terraform will login to the server
+resource "aws_instance" "ec2instance" {
+  ami                    = "ami-010f8b02680f80998"
+  instance_type          = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.dbsg.id]
+  key_name = aws_key_pair.deployer.key_name
+  connection {
+    type     = "ssh"
+    user     = "ec2-user"
+    private_key = file("./id_rsa")
+    host     = self.public_ip
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum install nginx -y",
+      "sudo systemctl start nginx",
+    ]
+  }
+  provisioner "remote-exec" {
+    when = destroy
+    inline = [
+      "sudo yum remove nginx -y"
+    ]
+  }
+}
+
+resource "aws_key_pair" "deployer" {
+    key_name   = "prodkey.key"
+    public_key = file("./id_rsa.pub")                  #make sure that id_rsa and is_rsa.pub is present in current working directory of terrform. you can create it with ssh-keygen command
+}
+
+variable "sg_ports" {
+  type = list
+  default = [80,22]
+}
+
+resource "aws_security_group" "dbsg" {
+  name        = "websg1"
+  egress {
+    from_port = 0
+    to_port = 65535
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  dynamic "ingress" {
+      for_each = var.sg_ports
+      content {
+        from_port        = ingress.value
+        to_port          = ingress.value
+        protocol         = "tcp"
+        cidr_blocks      = ["0.0.0.0/0"]
+      }
+    }
+  }
+
+===============================================
+
